@@ -7,6 +7,7 @@
 import { getCurrentChannel } from "@utils/discord";
 import { isObjectEmpty } from "@utils/misc";
 import { ChannelStore, GuildMemberCountStore, PermissionsBits, PermissionStore, SelectedChannelStore, Tooltip, useEffect, useStateFromStores, VoiceStateStore } from "@webpack/common";
+import { GuildMemberStore } from "@webpack/common";
 
 import { ChannelMemberStore, cl, numberFormat, settings, ThreadMemberListStore } from ".";
 import { CircleIcon } from "./CircleIcon";
@@ -41,6 +42,25 @@ export function MemberCount({ isTooltip, tooltipGuildId }: { isTooltip?: true; t
     const totalCount = useStateFromStores(
         [GuildMemberCountStore],
         () => GuildMemberCountStore.getMemberCount(guildId!)
+    );
+
+    const accessCount = useStateFromStores(
+        [GuildMemberStore, ChannelStore, PermissionStore],
+        () => {
+            if (!guildId || !currentChannel) return null;
+    
+            const members = GuildMemberStore.getMembers(guildId);
+            if (!members) return null;
+    
+            return Object.values(members).filter(member => {
+                const perms = PermissionStore.getChannelPermissions(
+                    currentChannel.id,
+                    member.userId
+                );
+    
+                return perms?.has(PermissionsBits.VIEW_CHANNEL);
+            }).length;
+        }
     );
 
     let onlineCount = useStateFromStores(
@@ -86,6 +106,18 @@ export function MemberCount({ isTooltip, tooltipGuildId }: { isTooltip?: true; t
                     </div>
                 )}
             </Tooltip>
+            {accessCount != null &&
+                <Tooltip text={`${numberFormat(accessCount)} members have access to this channel`} position="bottom">
+                    {props => (
+                        <div {...props} className={cl("container")}>
+                            <CircleIcon className={cl("access-count")} />
+                            <span className={cl("access")}>
+                                {numberFormat(accessCount)}
+                            </span>
+                        </div>
+                    )}
+                </Tooltip>
+            }
             <Tooltip text={`${numberFormat(totalCount)} total server members`} position="bottom">
                 {props => (
                     <div {...props} className={cl("container")}>
