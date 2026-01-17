@@ -144,7 +144,7 @@ export function parseEditContent(content: string, message: Message) {
 export default definePlugin({
     name: "MessageLogger",
     description: "Temporarily logs deleted and edited messages.",
-    authors: [Devs.rushii, Devs.Ven, Devs.AutumnVN, Devs.Nickyux, Devs.Kyuuhachi],
+    authors: [Devs.rushii, Devs.Ven, Devs.AutumnVN, Devs.Nickyux, Devs.Kyuuhachi, Devs.imroxxor],
     dependencies: ["MessageUpdaterAPI"],
 
     contextMenus: {
@@ -234,6 +234,11 @@ export default definePlugin({
             description: "Whether to ignore messages by yourself",
             default: false
         },
+        ignoreOwnDeletes: {
+            type: OptionType.BOOLEAN,
+            description: "Whether to ignore deleted messages by yourself",
+            default: false
+        },
         ignoreUsers: {
             type: OptionType.STRING,
             description: "Comma-separated list of user IDs to ignore",
@@ -248,7 +253,7 @@ export default definePlugin({
             type: OptionType.STRING,
             description: "Comma-separated list of guild IDs to ignore",
             default: ""
-        },
+        }
     },
 
     handleDelete(cache: any, data: { ids: string[], id: string; mlDeleted?: boolean; }, isBulk: boolean) {
@@ -286,11 +291,12 @@ export default definePlugin({
 
     shouldIgnore(message: any, isEdit = false) {
         try {
-            const { ignoreBots, ignoreSelf, ignoreUsers, ignoreChannels, ignoreGuilds, logEdits, logDeletes } = Settings.plugins.MessageLogger;
+            const { ignoreBots, ignoreSelf, ignoreUsers, ignoreChannels, ignoreGuilds, logEdits, logDeletes, ignoreOwnDeletes } = Settings.plugins.MessageLogger;
             const myId = UserStore.getCurrentUser().id;
 
             return ignoreBots && message.author?.bot ||
                 ignoreSelf && message.author?.id === myId ||
+                ignoreOwnDeletes && !isEdit && message.author?.id === myId ||
                 ignoreUsers.includes(message.author?.id) ||
                 ignoreChannels.includes(message.channel_id) ||
                 ignoreChannels.includes(ChannelStore.getChannel(message.channel_id)?.parent_id) ||
